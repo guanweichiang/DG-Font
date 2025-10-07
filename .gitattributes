@@ -1,0 +1,17 @@
+# 所有 Python 檔案統一換行符為 LF
+*.py text eol=lf
+
+# 可選：其他常見檔案
+*.txt text
+*.md text
+*.json text
+*.csv text
+
+# 忽略二進位檔案自動換行
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.zip binary
+*.pth binary
+*.pt binary
