@@ -219,7 +219,9 @@ def main_worker(gpu, ngpus_per_node, args):
 
     # All the test is done in the training - do not need to call
     if args.validation:
-        validationFunc(val_loader, networks, 999, args, {'logger': logger})
+        # We add the val_dataset to the dictionary being passed to the function.
+        # The key is 'train_dataset' because that is what the validation function is incorrectly asking for.
+        validationFunc(val_loader, networks, 999, args, {'logger': logger, 'train_dataset': val_dataset})
         return
 
     # For saving the model
@@ -373,25 +375,35 @@ def load_model(args, networks, opts):
 
 
 def get_loader(args, dataset):
-    train_dataset = dataset['train']
     val_dataset = dataset['val']
-
     print(len(val_dataset))
 
-    train_dataset_ = train_dataset['TRAIN']
-    if args.distributed:
-        train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset_)
-    else:
-        train_sampler = None
-    train_loader = torch.utils.data.DataLoader(train_dataset_, batch_size=args.batch_size,
-                                                shuffle=(train_sampler is None), num_workers=args.workers,
-                                                pin_memory=True, sampler=train_sampler, drop_last=False)
+    # Initialize train_loader and train_sampler to None
+    train_loader = None
+    train_sampler = None
 
+    # --- START OF MODIFICATION ---
+    # Only set up the training loader if we are NOT in validation mode
+    if not args.validation:
+        train_dataset = dataset['train']
+        train_dataset_ = train_dataset['TRAIN']
 
+        if args.distributed:
+            train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset_)
+        
+        train_loader = torch.utils.data.DataLoader(train_dataset_, batch_size=args.batch_size,
+                                                     shuffle=(train_sampler is None), num_workers=args.workers,
+                                                     pin_memory=True, sampler=train_sampler, drop_last=False)
+    # --- END OF MODIFICATION ---
+    
+    # The validation loader is always needed
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=args.val_batch, shuffle=True,
-                                             num_workers=0, pin_memory=True, drop_last=False)
+                                               num_workers=0, pin_memory=True, drop_last=False)
 
-    val_info = {'VAL_LOADER': val_loader, 'VALSET': val_dataset, 'TRAINSET': train_dataset['FULL']}
+    # Note: The 'val_info' dictionary is created but not returned. It seems unused.
+    # The code will work fine, but this line might be unnecessary.
+    val_info = {'VAL_LOADER': val_loader, 'VALSET': val_dataset, 'TRAINSET': dataset['train']['FULL'] if not args.validation else None}
+    
     return train_loader, val_loader, train_sampler
 
 

@@ -40,7 +40,8 @@ def validateUN(data_loader, networks, epoch, args, others):
 
     x_each_cls = []
     with torch.no_grad():
-        val_tot_tars = torch.tensor(val_dataset.targets)
+        # MODIFIED CODE (FINAL VERSION)
+        val_tot_tars = torch.tensor(val_dataset.dataset.targets if hasattr(val_dataset, 'dataset') else val_dataset.targets)
         for cls_idx in range(len(args.att_to_use)):
             tmp_cls_set = (val_tot_tars == args.att_to_use[cls_idx]).nonzero()[-args.val_num:]
             tmp_ds = torch.utils.data.Subset(val_dataset, tmp_cls_set)
