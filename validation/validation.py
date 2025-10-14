@@ -59,17 +59,17 @@ def validateUN(data_loader, networks, epoch, args, others):
             x_each_cls.append(tmp_sample)
 
     # <<<<<<<<<<<<<<<<<<<< 在這裡加入下面的除錯程式碼 >>>>>>>>>>>>>>>>>>>>
-    print("--- DEBUG: Inspecting x_each_cls after creation ---")
-    for i, item in enumerate(x_each_cls):
-        if item is None:
-            print(f"  Item for class index {i} is None")
-        else:
-            # 檢查張量是否為空 (0 個元素)
-            if item.numel() == 0:
-                print(f"  Item for class index {i} is an EMPTY TENSOR with shape: {item.shape}")
-            else:
-                print(f"  Item for class index {i} is a tensor with shape: {item.shape}")
-    print("--- END DEBUG ---")
+    #print("--- DEBUG: Inspecting x_each_cls after creation ---")
+    #for i, item in enumerate(x_each_cls):
+    #    if item is None:
+    #        print(f"  Item for class index {i} is None")
+    #    else:
+    #        # 檢查張量是否為空 (0 個元素)
+    #        if item.numel() == 0:
+    #            print(f"  Item for class index {i} is an EMPTY TENSOR with shape: {item.shape}")
+    #        else:
+    #            print(f"  Item for class index {i} is a tensor with shape: {item.shape}")
+    #print("--- END DEBUG ---")
     # <<<<<<<<<<<<<<<<<<<< 除錯程式碼結束 >>>>>>>>>>>>>>>>>>>>
     
     if epoch >= args.fid_start:
