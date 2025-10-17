@@ -208,7 +208,6 @@ def main_worker(gpu, ngpus_per_node, args):
 
     # get dataset and data loader
     train_dataset, val_dataset = get_dataset(args)
-    print(f"--- DEBUG: Length of returned val_dataset is: {len(val_dataset)} ---")
     train_loader, val_loader, train_sampler = get_loader(args, {'train': train_dataset, 'val': val_dataset})
 
     # map the functions to execute - un / sup / semi-
@@ -221,7 +220,8 @@ def main_worker(gpu, ngpus_per_node, args):
     if args.validation:
         # We add the val_dataset to the dictionary being passed to the function.
         # The key is 'train_dataset' because that is what the validation function is incorrectly asking for.
-        validationFunc(val_loader, networks, 999, args, {'logger': logger, 'train_dataset': val_dataset})
+        # main.py:312 (修改後)
+        validationFunc(val_loader, networks, 999, args, {'logger': logger, 'train_dataset': train_dataset['FULL']})
         return
 
     # For saving the model
@@ -252,28 +252,6 @@ def main_worker(gpu, ngpus_per_node, args):
                 networks['G_EMA'].load_state_dict(networks['G'].state_dict())
 
         trainFunc(train_loader, networks, opts, epoch, args, {'logger': logger})
-        """
-        # 在 main.py 的 main_worker 函式中，找到呼叫 validationFunc 的地方
-        # 在它前面加上這段
-
-        print("--- DEBUG: Checking val_loader ---")
-        if len(val_loader.dataset) == 0:
-            print("Validation dataset is EMPTY!")
-        else:
-            print(f"Validation dataset has {len(val_loader.dataset)} samples.")
-            # 嘗試從 val_loader 取出一個批次的資料看看
-            try:
-                val_batch = next(iter(val_loader))
-                print("Successfully fetched one batch from val_loader.")
-                # 檢查取出的資料維度
-                # 假設 val_batch 是 (images, labels) 的形式
-                print(f"Batch image shape: {val_batch[0].shape}") 
-            except StopIteration:
-                print("Could not fetch any batch from val_loader. It seems to be empty.")
-        print("--- END DEBUG ---")
-
-        # 原本的程式碼
-        """
         full_train_dataset = train_dataset['FULL']
         validationFunc(val_loader, networks, epoch, args, {'logger': logger, 'train_dataset': full_train_dataset})
 
@@ -376,17 +354,18 @@ def load_model(args, networks, opts):
 
 def get_loader(args, dataset):
     val_dataset = dataset['val']
-    print(len(val_dataset))
+    # print(len(val_dataset))
 
     # Initialize train_loader and train_sampler to None
     train_loader = None
     train_sampler = None
 
-    # --- START OF MODIFICATION ---
-    # Only set up the training loader if we are NOT in validation mode
     if not args.validation:
         train_dataset = dataset['train']
-        train_dataset_ = train_dataset['TRAIN']
+        train_dataset_ = train_dataset['FULL']
+
+        # print(f"--- DEBUG: train_dataset 字典包含的鍵: {train_dataset.keys()} ---")
+        # print(f"--- DEBUG: 在建立 DataLoader 前，train_dataset_ 的長度是: {len(train_dataset_)} ---")
 
         if args.distributed:
             train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset_)
@@ -394,16 +373,12 @@ def get_loader(args, dataset):
         train_loader = torch.utils.data.DataLoader(train_dataset_, batch_size=args.batch_size,
                                                      shuffle=(train_sampler is None), num_workers=args.workers,
                                                      pin_memory=True, sampler=train_sampler, drop_last=False)
-    # --- END OF MODIFICATION ---
-    
-    # The validation loader is always needed
+
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=args.val_batch, shuffle=True,
                                                num_workers=0, pin_memory=True, drop_last=False)
 
-    # Note: The 'val_info' dictionary is created but not returned. It seems unused.
-    # The code will work fine, but this line might be unnecessary.
     val_info = {'VAL_LOADER': val_loader, 'VALSET': val_dataset, 'TRAINSET': dataset['train']['FULL'] if not args.validation else None}
-    
+       
     return train_loader, val_loader, train_sampler
 
 
